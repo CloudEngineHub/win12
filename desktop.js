@@ -34,6 +34,7 @@ function loadlang(code) {
                 // if($.i18n.prop($(this).data("i18n-key"))!=$(this).attr($(this).data("i18n-attr")))console.log($(this).data("i18n-key"),$(this).attr($(this).data("i18n-attr")));
                 $(this).attr($(this).data("i18n-attr"), $.i18n.prop($(this).data("i18n-key")));
             });
+            updateAboutAppEntrypoints();
         }
     });
 }
@@ -101,6 +102,23 @@ console.log('?')
 /// 用例：lang('设置','setting.name')
 // 
 // 为开发方便，故不将简体中文纳入语言考虑
+
+function isTauriApp() {
+    return !!((window.win12Native && window.win12Native.isTauri && window.win12Native.isTauri()) || (window.__TAURI__ && window.__TAURI__.core));
+}
+
+function getAboutAppTitle() {
+    if (!isTauriApp()) return lang('关于 Win12 网页版', 'about.name');
+    if (langcode == 'en') return 'About Win12-desktop';
+    if (langcode == 'zh-TW') return '關於 Win12-desktop';
+    return '关于 Win12-desktop';
+}
+
+function updateAboutAppEntrypoints() {
+    $('.about-app-title').text(getAboutAppTitle());
+}
+
+updateAboutAppEntrypoints();
 
 
 // 后端服务器
@@ -429,7 +447,7 @@ const cms = {
                 return ['<i class="bi bi-pencil"></i> ' + lang('进入编辑模式', 'desktop.enteredit'), 'editMode();'];
             }
         },
-        ['<i class="bi bi-info-circle"></i> ' + lang('关于 Win12 网页版', 'about.name'), '$(\'#win-about>.about\').addClass(\'show\');$(\'#win-about>.update\').removeClass(\'show\');openapp(\'about\');if($(\'.window.about\').hasClass(\'min\'))minwin(\'about\');'],
+        ['<i class="bi bi-info-circle"></i> ' + getAboutAppTitle(), 'openapp(\'about\');'],
         ['<i class="bi bi-brush"></i> ' + lang('个性化', 'psnl'), 'openapp(\'setting\');$(\'#win-setting > div.menu > list > a.enable.appearance\')[0].click()']
     ],
     'desktop.icon': [
@@ -492,8 +510,8 @@ const cms = {
     ],
     'msgupdate': [
         ['<i class="bi bi-layout-text-window-reverse"></i> 查看详细', `openapp('about');if($('.window.about').hasClass('min'))
-        minwin('about');$('#win-about>.about').removeClass('show');$('#win-about>.update').addClass('show');
-        $('#win-about>.update>div>details:first-child').attr('open','open')`],
+        minwin('about');apps.about.page('update');
+        $('#win-about>.update.show>div>details:first-child').attr('open','open')`],
         ['<i class="bi bi-box-arrow-right"></i> 关闭', '$(\'.msg.update\').removeClass(\'show\')']
     ],
     'explorer.folder': [
@@ -1922,17 +1940,47 @@ let copilot = {
             method: 'GET',
             success: function (filteredText) {
                 if (filteredText !== t) {
-                    $('#copilot>.chat').append(`<div class="line system"><p class="text">针对这个问题我无法为你提供相应解答。你可以尝试提供其他话题，我会尽力为你提供支持和解答。</p></div>`);
-                    $('#copilot>.chat').scrollTop($('#copilot>.chat')[0].scrollHeight);
-                    msgDoneOperate();
+                    triggerBlockAction();
                     return;
                 }
-                proceedSend();
+                proceedToSecondLayer();
             },
             error: function () {
-                proceedSend();
+                proceedToSecondLayer();
             }
         });
+
+
+        function proceedToSecondLayer() {
+            $.ajax({
+                url: 'llama-guard-api.freedom-323.workers.dev',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    model: 'llama-guard3:1b',
+                    messages: [{ role: 'user', content: t }],
+                    stream: false
+                }),
+                success: function (response) {
+                    if (response && response.message && response.message.content.includes('unsafe')) {
+                        triggerBlockAction();
+                        return; 
+                    }
+                    proceedSend();
+                },
+                error: function () {
+                    $('#copilot>.chat').append(`<div class="line system"><p class="text">安全检查服务暂时不可用，请稍后再试。</p></div>`);
+                    $('#copilot>.chat').scrollTop($('#copilot>.chat').scrollHeight);
+                    msgDoneOperate();
+                }
+            });
+        }
+
+        function triggerBlockAction() {
+            $('#copilot>.chat').append(`<div class="line system"><p class="text">针对这个问题我无法为你提供相应解答。你可以尝试提供其他话题，我会尽力为你提供支持和解答。</p></div>`);
+            $('#copilot>.chat').scrollTop($('#copilot>.chat').scrollHeight);
+            msgDoneOperate();
+        }
 
         function proceedSend() {
         // 显示用户消息
@@ -2533,7 +2581,7 @@ function setIcon() {
     </div>
     <div class="b" ondblclick="openapp('about');" ontouchstart="openapp('about');" oncontextmenu="return showcm(event,'desktop.icon',['about',-1]);" appname="about">
         <img src="icon/about.svg">
-        <p>${lang('关于 Win12 网页版', 'about.name')}</p>
+        <p>${getAboutAppTitle()}</p>
     </div>
     <div class="b" ondblclick="openapp('edge');" ontouchstart="openapp('edge');" oncontextmenu="return showcm(event,'desktop.icon',['edge',-1]);" appname="edge">
         <img src="icon/edge.svg">
