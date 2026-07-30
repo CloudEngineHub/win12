@@ -1,12 +1,12 @@
 /* Optional WebGL compositor. The DOM remains the source of truth and is the fallback. */
 (function () {
   const KEY = 'webgl-mode';
-  const DEFAULT_MODE = 'partial';
+  const DEFAULT_MODE = 'off';
   let canvas;
   let animationFrame;
 
   const style = document.createElement('style');
-  style.textContent = '#win12-webgl-layer{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:0;opacity:.65}#desktop,.window,.taskbar,.dock{position:relative;z-index:1}.webgl-full #win12-webgl-layer{opacity:.9}.webgl-partial #win12-webgl-layer{opacity:.55}.webgl-fallback #win12-webgl-layer{display:none}';
+  style.textContent = '#win12-webgl-layer{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:0;opacity:.45;mix-blend-mode:multiply}.webgl-full #win12-webgl-layer{opacity:.55}.webgl-partial #win12-webgl-layer{opacity:.3}.webgl-fallback #win12-webgl-layer{display:none}';
   document.head.appendChild(style);
 
   function supported() {
