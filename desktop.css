@@ -2497,6 +2497,7 @@ input-before {
     margin-top: 8px;
     color: var(--text);
     outline: none;
+    z-index: 20;
 }
 
 .webgl-selector-value {
@@ -2520,23 +2521,30 @@ input-before {
 }
 
 .webgl-selector-options {
-    position: absolute;
-    z-index: 110;
-    display: none;
-    left: 0;
-    right: 0;
-    top: calc(100% + 5px);
+    position: static;
+    z-index: auto;
+    display: flex;
+    gap: 5px;
+    width: 100%;
+    margin-top: 5px;
     padding: 5px;
     border: 1px solid #7f7f7f40;
     border-radius: 10px;
     background: var(--card);
-    box-shadow: 0 5px 18px var(--shadow);
+    box-shadow: none;
 }
 
-.webgl-selector.open .webgl-selector-options { display: block; }
+.webgl-selector.open .webgl-selector-options { display: flex; }
+
+.webgl-selector-options-portal {
+    position: static !important;
+    display: flex !important;
+}
 
 .webgl-selector-options a {
     display: block;
+    flex: 1;
+    text-align: center;
     padding: 8px 10px;
     border-radius: 7px;
     color: var(--text);
