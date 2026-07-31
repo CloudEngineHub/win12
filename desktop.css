@@ -2536,11 +2536,6 @@ input-before {
 
 .webgl-selector.open .webgl-selector-options { display: flex; }
 
-.webgl-selector-options-portal {
-    position: static !important;
-    display: flex !important;
-}
-
 .webgl-selector-options a {
     display: block;
     flex: 1;
