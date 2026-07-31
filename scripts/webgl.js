@@ -8,19 +8,21 @@
 
   // Inline styles for the WebGL overlay layer
   const style = document.createElement('style');
-  style.textContent = [
-    '#win12-webgl-layer{',
-      'position:fixed;inset:0;',
-      'width:100vw;height:100vh;',
-      'pointer-events:none;',
-      'z-index:0;',
-      'opacity:.45;',
-      'mix-blend-mode:multiply;',
-    '}',
-    '.webgl-full #win12-webgl-layer{opacity:.55;}',
-    '.webgl-partial #win12-webgl-layer{opacity:.3;}',
-    '.webgl-fallback #win12-webgl-layer{display:none;}',
-  ].join('');
+  style.textContent = `
+    #win12-webgl-layer{
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 0;
+      opacity: .45;
+      mix-blend-mode: multiply;
+    }
+    .webgl-full #win12-webgl-layer { opacity: .55; }
+    .webgl-partial #win12-webgl-layer { opacity: .3; }
+    .webgl-fallback #win12-webgl-layer { display: none; }
+  `;
   document.head.appendChild(style);
 
   /** Check whether WebGL (ideally WebGL2) is available. */
