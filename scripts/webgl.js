@@ -8,21 +8,19 @@
 
   // Inline styles for the WebGL overlay layer
   const style = document.createElement('style');
-  style.textContent = `
-    #win12-webgl-layer{
-      position: fixed;
-      inset: 0;
-      width: 100vw;
-      height: 100vh;
-      pointer-events: none;
-      z-index: 0;
-      opacity: .45;
-      mix-blend-mode: multiply;
-    }
-    .webgl-full #win12-webgl-layer { opacity: .55; }
-    .webgl-partial #win12-webgl-layer { opacity: .3; }
-    .webgl-fallback #win12-webgl-layer { display: none; }
-  `;
+  style.textContent = [
+    '#win12-webgl-layer{',
+      'position:fixed;inset:0;',
+      'width:100vw;height:100vh;',
+      'pointer-events:none;',
+      'z-index:0;',
+      'opacity:.45;',
+      'mix-blend-mode:multiply;',
+    '}',
+    '.webgl-full #win12-webgl-layer{opacity:.55;}',
+    '.webgl-partial #win12-webgl-layer{opacity:.3;}',
+    '.webgl-fallback #win12-webgl-layer{display:none;}',
+  ].join('');
   document.head.appendChild(style);
 
   /** Check whether WebGL (ideally WebGL2) is available. */
@@ -83,20 +81,21 @@
       'attribute vec2 p;' +
       'void main(){gl_Position=vec4(p,0.,1.);}';
 
-    const fragmentSrc = [
-      'precision mediump float;',
-      'uniform float t;',
-      'void main(){',
-        'vec2 p=gl_FragCoord.xy/vec2(1200.,800.);',
-        'float v=.5+.5*sin(t*.00025+p.x*3.0+p.y*2.0);',
-        'gl_FragColor=vec4(',
-          '.05+.08*v,',
-          '.28+.12*v,',
-          '.52+.18*v,',
-          '.12',
-        ');',
-      '}',
-    ].join('');
+    const fragmentSrc = `
+      precision mediump float;
+      uniform float t;
+
+      void main() {
+        vec2 p = gl_FragCoord.xy / vec2(1200.0, 800.0);
+        float v = 0.5 + 0.5 * sin(t * 0.00025 + p.x * 3.0 + p.y * 2.0);
+
+        gl_FragColor = vec4(
+          0.05 + 0.08 * v,
+          0.28 + 0.12 * v,
+          0.52 + 0.18 * v,
+          0.12
+        );
+      }`;
 
     const compile = (type, source) => {
       const s = gl.createShader(type);
