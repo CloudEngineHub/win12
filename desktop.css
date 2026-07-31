@@ -2500,26 +2500,6 @@ input-before {
     z-index: 20;
 }
 
-.webgl-selector-value {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    min-height: 38px;
-    padding: 0 12px;
-    border: 1px solid #7f7f7f40;
-    border-radius: 9px;
-    background: var(--card);
-    cursor: pointer;
-    transition: 120ms;
-}
-
-.webgl-selector-value:hover,
-.webgl-selector.open .webgl-selector-value,
-.webgl-selector:focus .webgl-selector-value {
-    border-color: var(--href);
-    background: var(--hover);
-}
-
 .webgl-selector-options {
     position: static;
     z-index: auto;
@@ -2533,8 +2513,6 @@ input-before {
     background: var(--card);
     box-shadow: none;
 }
-
-.webgl-selector.open .webgl-selector-options { display: flex; }
 
 .webgl-selector-options a {
     display: block;
