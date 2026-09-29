@@ -1880,7 +1880,7 @@ let apps = {
             const selector = apps.about.contributorsSelector();
             apps.about.run_loading(selector);
             // 实时获取项目贡献者
-            $.get(`https://api.github.com/repos/${apps.about.repo()}/contributors`).then(cs => {
+            $.get(`https://api.github.com/repos/${apps.about.repo()}/contributors?per_page=100`).then(cs => {
                 setTimeout(() => {
                     $(selector).html('');
                     cs.forEach(c => {
@@ -1890,22 +1890,31 @@ let apps = {
                 }, 200);
             });
         },
-        get_star: () => {
-            const selector = apps.about.starSelector();
-            apps.about.run_loading(selector);
-            fetch(`https://api.github.com/repos/${apps.about.repo()}`)
-                .then(response => response.json())
-                .then(data => {
-                    setTimeout(() => {
-                        const starCount = data.stargazers_count;
-                        $(selector).html('<div style="display: flex;"><p>&emsp;&emsp;Star 数量：' + starCount + ' (实时数据)</p>&emsp;<a class="button" onclick="apps.about.get_star()"><i class="bi bi-arrow-clockwise"></i> 刷新</a></div>');
-                    }, 200);
-                })
-                .catch(error => {
-                    console.error('获取 star 数量时出错：', error);
-                    $(selector).html('<div style="display: flex;"><p>&emsp;&emsp;哎呀！出错了！</p>&emsp;<a class="button" onclick="apps.about.get_star()"><i class="bi bi-arrow-clockwise"></i> 重试</a></div>');
-                });
-        }
+    	get_star: () => {
+        	const selector = apps.about.starSelector();
+        	apps.about.run_loading(selector);
+        	fetch(`https://api.github.com/repos/${apps.about.repo()}`)
+            	.then(response => response.json())
+            	.then(data => {
+                	setTimeout(() => {
+                    	const starCount = data.stargazers_count;
+                    	if (starCount === undefined) {
+                        	apps.about.get_star_fail(selector);
+                        	return;
+                		}
+                    	$(selector).html('<div style="display: flex;"><p>&emsp;&emsp;Star 数量：' + starCount + ' (实时数据)</p>&emsp;<a class="button" onclick="apps.about.get_star()"><i class="bi bi-arrow-clockwise"></i> 刷新</a></div>');
+                	}, 200);
+            })
+            .catch(error => {
+                console.error('获取 star 数量时出错：', error);
+                apps.about.get_star_fail(selector);
+            });
+    },
+
+    get_star_fail: selector => {
+        setTimeout(() => {
+            $(selector).html('<div style="display: flex;"><p>&emsp;&emsp;Star 数量：获取失败</p>&emsp;<a class="button" onclick="apps.about.get_star()"><i class="bi bi-arrow-clockwise"></i> 重试</a></div>');
+       }, 200);
     },
     notepad: {
         _pendingContent: null,
