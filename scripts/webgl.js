@@ -229,6 +229,19 @@
     return map;
   }
 
+  /** True when a 2D context holds nothing but transparent pixels. */
+  function isBlankCanvas(ctx, w, h) {
+    try {
+      const d = ctx.getImageData(0, 0, w, h).data;
+      for (let i = 3; i < d.length; i += 4) {
+        if (d[i] !== 0) return false;
+      }
+      return true;
+    } catch (_) {
+      return false; // unreadable (tainted/zero-sized): assume it is fine
+    }
+  }
+
   /** Delete the GL objects a layer owns; contexts and VRAM are scarce. */
   function deleteGLObjects(gl, obj) {
     if (!gl || gl.isContextLost()) return;
@@ -320,6 +333,8 @@
     uniform vec2 uCoverScale;
     uniform vec2 uCoverOffset;
     uniform vec2 uBlurStep;   // wuv delta per screen px
+    uniform float uSat;       // backdrop-filter saturate() of the panel kind
+    uniform float uCon;       // backdrop-filter contrast() of the panel kind
     uniform vec4 uShadowColor;
     uniform vec2 uShadowOffset;
     uniform float uShadowBlur;
@@ -371,10 +386,10 @@
         vec2 wuv = vec2(vScreenN.x * uCoverScale.x + uCoverOffset.x,
                         1.0 - (vScreenN.y * uCoverScale.y + uCoverOffset.y));
         vec3 blur = wallpaperBlur(wuv);
-        // approx CSS saturate(1.6) contrast(0.85) used by the acrylic rules
+        // the same saturate()/contrast() the acrylic rules apply, per panel kind
         float luma = dot(blur, vec3(0.299, 0.587, 0.114));
-        blur = mix(vec3(luma), blur, 1.6);
-        blur = mix(vec3(0.5), blur, 0.85);
+        blur = mix(vec3(luma), blur, uSat);
+        blur = mix(vec3(0.5), blur, uCon);
         vec3 mixRGB = mix(blur, uTint.rgb, uTint.a);
         float mixA = uTint.a + (1.0 - uTint.a);
         fillRGB = mix(uTint.rgb, mixRGB, uBlurMix);
@@ -771,6 +786,8 @@
       // no texture (yet) -> no blur taps, otherwise we would sample an
       // incomplete texture and get black
       gl.uniform1f(this.u.uBlurMix, this.tex ? d.blurMix : 0);
+      gl.uniform1f(this.u.uSat, d.sat === undefined ? 1.6 : d.sat);
+      gl.uniform1f(this.u.uCon, d.con === undefined ? 0.85 : d.con);
       gl.uniform4fv(this.u.uShadowColor, d.shadowColor);
       gl.uniform2f(this.u.uShadowOffset, d.shadowOffset[0], d.shadowOffset[1]);
       gl.uniform1f(this.u.uShadowBlur, d.shadowBlur);
@@ -886,23 +903,18 @@
     source: null,   // HTMLCanvasElement
     key: '',
     size: [0, 0],
+    blank: false,   // true when neither the image nor the gradient made it in
 
     async rebuild(image, colA, colB) {
-      let w = 64, h = 64, hasImage = false, bitmap = null;
+      let w = 64, h = 64, hasImage = false;
       if (image) {
-        const iw = image.naturalWidth || image.width;
-        const ih = image.naturalHeight || image.height;
+        const iw = image.naturalWidth || image.width || 0;
+        const ih = image.naturalHeight || image.height || 0;
         if (iw > 0 && ih > 0) {
           const k = Math.min(1, BLUR_SRC_MAX / Math.max(iw, ih));
           w = Math.max(1, Math.round(iw * k));
           h = Math.max(1, Math.round(ih * k));
           hasImage = true;
-          if (typeof createImageBitmap === 'function') {
-            try {
-              bitmap = await createImageBitmap(image,
-                { resizeWidth: w, resizeHeight: h, resizeQuality: 'low' });
-            } catch (_) { bitmap = null; } // pre-scale via drawImage instead
-          }
         }
       }
       const c = document.createElement('canvas');
@@ -910,9 +922,19 @@
       if (hasImage) {
         c.width = w; c.height = h;
         try {
-          ctx.drawImage(bitmap || image, 0, 0, w, h);
+          // Draw the source directly. createImageBitmap() used to be tried
+          // first for speed, but for an SVG without intrinsic dimensions (the
+          // default Win12 wallpapers) Chrome returns a 150x150 bitmap that is
+          // FULLY TRANSPARENT instead of throwing, so every panel silently
+          // lost its mica and showed the plain tint - invisible in light
+          // mode, but in dark mode the dock and windows turned flat grey.
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(image, 0, 0, w, h);
+          if (isBlankCanvas(ctx, w, h)) {
+            console.warn('Win12 WebGL: wallpaper rasterised to nothing, using gradient');
+            hasImage = false;
+          }
         } catch (err) {
-          // e.g. SVG without intrinsic dimensions
           console.warn('Win12 WebGL: wallpaper downscale failed:', err && err.message);
           hasImage = false;
         }
@@ -927,9 +949,9 @@
         ctx.fillStyle = g;
         ctx.fillRect(0, 0, w, h);
       }
-      if (bitmap && bitmap.close) bitmap.close();
       this.source = c;
       this.size = [w, h];
+      this.blank = isBlankCanvas(ctx, w, h);
       this.key = (Wallpaper.url || 'grad') + ':' + w + 'x' + h +
         ':' + colA.join(',') + ':' + colB.join(',') + (hasImage ? ':img' : ':grad');
     },
@@ -957,12 +979,14 @@
     const menuBorder = parseColor('#99999950');
     const moreBlur = T.moreBlur;
 
+    // sat/con mirror the CSS backdrop-filter of each panel kind; without them
+    // one global pair left, say, the dock visibly greyer than the DOM version.
     const M = {
-      window: { shadowBlur: 24, shadowOffset: [2, 6], borderColor: winBorder, borderWidth: 1.5, shadowColor: T.shadow },
-      widget: { tint: T.bg50, blurMix: 1, shadowBlur: 20, shadowOffset: [3, 3], borderColor: [0, 0, 0, 0], borderWidth: 0, shadowColor: T.shadow },
-      dock:   { tint: T.ctxMenu, blurMix: 0.9, shadowBlur: 18, shadowOffset: [0, 3], borderColor: menuBorder, borderWidth: 1, shadowColor: T.shadow },
-      menu:   { tint: T.bg50, blurMix: 1, shadowBlur: 22, shadowOffset: [3, 4], borderColor: menuBorder, borderWidth: 1.5, shadowColor: T.shadow },
-      cm:     { tint: T.ctxMenu, blurMix: 0.9, shadowBlur: 20, shadowOffset: [3, 3], borderColor: winBorder, borderWidth: 1.5, shadowColor: T.shadow },
+      window: { shadowBlur: 24, shadowOffset: [2, 6], borderColor: winBorder, borderWidth: 1.5, shadowColor: T.shadow, sat: 4, con: 0.8 },
+      widget: { tint: T.bg50, blurMix: 1, shadowBlur: 20, shadowOffset: [3, 3], borderColor: [0, 0, 0, 0], borderWidth: 0, shadowColor: T.shadow, sat: 1.5, con: 1 },
+      dock:   { tint: T.ctxMenu, blurMix: 0.9, shadowBlur: 18, shadowOffset: [0, 3], borderColor: menuBorder, borderWidth: 1, shadowColor: T.shadow, sat: 2, con: 1 },
+      menu:   { tint: T.bg50, blurMix: 1, shadowBlur: 22, shadowOffset: [3, 4], borderColor: menuBorder, borderWidth: 1.5, shadowColor: T.shadow, sat: 4, con: 0.8 },
+      cm:     { tint: T.ctxMenu, blurMix: 0.9, shadowBlur: 20, shadowOffset: [3, 3], borderColor: winBorder, borderWidth: 1.5, shadowColor: T.shadow, sat: 2, con: 1 },
     };
 
     const out = [];
@@ -1002,7 +1026,7 @@
           scaleX: r.width / w,
           scaleY: r.height / h,
           radius, opacity,
-          tint: b.tint, blurMix: b.blurMix,
+          tint: b.tint, blurMix: b.blurMix, sat: b.sat, con: b.con,
           shadowColor: b.shadowColor, shadowOffset: b.shadowOffset,
           shadowBlur: b.shadowBlur, borderColor: b.borderColor,
           borderWidth: b.borderWidth,
@@ -1710,6 +1734,7 @@
           loaded: !!Wallpaper.image,
           failed: Wallpaper.failed,
           blur: BlurSource.size[0] + 'x' + BlurSource.size[1],
+          blurBlank: BlurSource.blank,
           tex: full.bg.texSize[0] + 'x' + full.bg.texSize[1],
         },
         lastError: full.lastError,
