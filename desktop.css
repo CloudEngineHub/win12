@@ -2492,17 +2492,13 @@ input-before {
 /*** 以下窗口相关 ***/
 
 .webgl-selector {
-    position: relative;
     width: 100%;
     margin-top: 8px;
     color: var(--text);
     outline: none;
-    z-index: 20;
 }
 
 .webgl-selector-options {
-    position: static;
-    z-index: auto;
     display: flex;
     gap: 5px;
     width: 100%;
@@ -2511,7 +2507,6 @@ input-before {
     border: 1px solid #7f7f7f40;
     border-radius: 10px;
     background: var(--card);
-    box-shadow: none;
 }
 
 .webgl-selector-options a {
@@ -2525,9 +2520,30 @@ input-before {
 }
 
 .webgl-selector-options a:hover,
-.webgl-selector-options a.selected {
+.webgl-selector-options a.selected,
+.webgl-selector-options a[aria-checked="true"] {
     background: var(--hover);
     color: var(--href);
+}
+
+.webgl-selector-options a:focus-visible {
+    outline: 2px solid var(--href);
+    outline-offset: 1px;
+}
+
+.webgl-hint {
+    margin: 6px 0 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--text2);
+}
+
+.webgl-hint.warn {
+    color: #c0392b;
+}
+
+:root.dark .webgl-hint.warn {
+    color: #ff9e9e;
 }
 
 .window {
