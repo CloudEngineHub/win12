@@ -73,17 +73,19 @@
   const DEFAULT_MODE = 'off';
   const MODES = ['off', 'partial', 'full'];
   const MAX_DPR = 2;
-  const POOL_SIZE = 12;         // max simultaneous panel WebGL contexts
-  const BLUR_SRC_MAX = 384;    // px of the shared downscaled wallpaper
+  const POOL_SIZE = 12; // max simultaneous panel WebGL contexts
+  const BLUR_SRC_MAX = 384; // px of the shared downscaled wallpaper
   const WALLPAPER_TEX_MAX = 2048; // px of the wallpaper texture (long side)
-  const BLUR_RADIUS = 34;      // px of wallpaper blur, in SCREEN px
-  const POOL_RETRY_MS = 5000;  // re-try a lowered pool limit after this long
-  const MAX_HARD_FAILS = 3;    // shader/build failures before panels are off
-  const MAX_FRAME_ERRORS = 5;  // consecutive frame errors before falling back
+  const BLUR_RADIUS = 34; // px of wallpaper blur, in SCREEN px
+  const POOL_RETRY_MS = 5000; // re-try a lowered pool limit after this long
+  const MAX_HARD_FAILS = 3; // shader/build failures before panels are off
+  const MAX_FRAME_ERRORS = 5; // consecutive frame errors before falling back
 
   // ---------------------------------------------------------------- utils
 
-  function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+  function clamp01(v) {
+    return v < 0 ? 0 : v > 1 ? 1 : v;
+  }
 
   /** 0..255 or 0..100% channel -> 0..1 */
   function chan(token, scale) {
@@ -94,7 +96,7 @@
   }
 
   function hsl2rgb(h, s, l) {
-    h = ((h % 360) + 360) % 360 / 360;
+    h = (((h % 360) + 360) % 360) / 360;
     const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
     const p = 2 * l - q;
     const f = (t) => {
@@ -123,13 +125,17 @@
       const h = str.slice(1);
       if (!/^[0-9a-f]+$/.test(h)) return null;
       if (h.length === 3 || h.length === 4) {
-        const r = parseInt(h[0] + h[0], 16), g = parseInt(h[1] + h[1], 16),
-          b = parseInt(h[2] + h[2], 16), a = h.length === 4 ? parseInt(h[3] + h[3], 16) : 255;
+        const r = parseInt(h[0] + h[0], 16),
+          g = parseInt(h[1] + h[1], 16),
+          b = parseInt(h[2] + h[2], 16),
+          a = h.length === 4 ? parseInt(h[3] + h[3], 16) : 255;
         return [r / 255, g / 255, b / 255, a / 255];
       }
       if (h.length === 6 || h.length === 8) {
-        const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16),
-          b = parseInt(h.slice(4, 6), 16), a = h.length === 8 ? parseInt(h.slice(6, 8), 16) : 255;
+        const r = parseInt(h.slice(0, 2), 16),
+          g = parseInt(h.slice(2, 4), 16),
+          b = parseInt(h.slice(4, 6), 16),
+          a = h.length === 8 ? parseInt(h.slice(6, 8), 16) : 255;
         return [r / 255, g / 255, b / 255, a / 255];
       }
       return null;
@@ -138,23 +144,37 @@
     if (!m) return null;
     // split "r, g, b, a" / "r g b / a" / "h, s%, l%, a" into channels
     const [head, tail] = m[2].split('/');
-    const parts = head.trim().split(/[\s,]+/).filter(Boolean);
+    const parts = head
+      .trim()
+      .split(/[\s,]+/)
+      .filter(Boolean);
     let alpha = 1;
     if (tail !== undefined) alpha = chan(tail, 1);
     else if (parts.length > 3 && m[1].length > 3) alpha = chan(parts[3], 1);
     if (!isFinite(alpha)) alpha = 1;
     if (m[1][0] === 'r') {
       if (parts.length < 3) return null;
-      return [chan(parts[0], 255), chan(parts[1], 255), chan(parts[2], 255), clamp01(alpha)];
+      return [
+        chan(parts[0], 255),
+        chan(parts[1], 255),
+        chan(parts[2], 255),
+        clamp01(alpha),
+      ];
     }
     if (parts.length < 3) return null;
     const h = parseFloat(parts[0]);
-    const [r, g, b] = hsl2rgb(isFinite(h) ? h : 0, chan(parts[1], 100), chan(parts[2], 100));
+    const [r, g, b] = hsl2rgb(
+      isFinite(h) ? h : 0,
+      chan(parts[1], 100),
+      chan(parts[2], 100),
+    );
     return [r, g, b, clamp01(alpha)];
   }
 
   function cssVar(name) {
-    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return getComputedStyle(document.documentElement)
+      .getPropertyValue(name)
+      .trim();
   }
 
   /**
@@ -249,7 +269,9 @@
       if (obj.tex) gl.deleteTexture(obj.tex);
       if (obj.program) gl.deleteProgram(obj.program);
       if (obj.quad) gl.deleteBuffer(obj.quad);
-    } catch (_) { /* already gone */ }
+    } catch (_) {
+      /* already gone */
+    }
   }
 
   /**
@@ -263,7 +285,9 @@
     try {
       const ext = gl.getExtension('WEBGL_lose_context');
       if (ext) ext.loseContext();
-    } catch (_) { /* nothing else we can do */ }
+    } catch (_) {
+      /* nothing else we can do */
+    }
   }
 
   // -------------------------------------------------------------- shaders
@@ -415,16 +439,21 @@
   function createUnitQuad(gl) {
     const buf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER,
-      new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]), gl.STATIC_DRAW);
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]),
+      gl.STATIC_DRAW,
+    );
     return buf;
   }
 
   function coverTransform(viewW, viewH, imgW, imgH) {
     if (!imgW || !imgH) return { scale: [1, 1], offset: [0, 0] };
     const s = Math.max(viewW / imgW, viewH / imgH);
-    const drawnW = imgW * s, drawnH = imgH * s;
-    const offX = (viewW - drawnW) / 2, offY = (viewH - drawnH) / 2;
+    const drawnW = imgW * s,
+      drawnH = imgH * s;
+    const offX = (viewW - drawnW) / 2,
+      offY = (viewH - drawnH) / 2;
     return {
       scale: [viewW / drawnW, viewH / drawnH],
       offset: [-offX / drawnW, -offY / drawnH],
@@ -451,11 +480,21 @@
       canvas.id = 'win12-webgl-canvas';
       canvas.className = 'win12-gl-bg';
       canvas.setAttribute('aria-hidden', 'true');
-      const gl = canvas.getContext('webgl2', {
-        alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false,
-      }) || canvas.getContext('webgl', {
-        alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false,
-      });
+      const gl =
+        canvas.getContext('webgl2', {
+          alpha: true,
+          premultipliedAlpha: true,
+          antialias: false,
+          depth: false,
+          stencil: false,
+        }) ||
+        canvas.getContext('webgl', {
+          alpha: true,
+          premultipliedAlpha: true,
+          antialias: false,
+          depth: false,
+          stencil: false,
+        });
       if (!gl) return false;
       this.canvas = canvas;
       this.gl = gl;
@@ -496,9 +535,15 @@
     setWallpaper(image) {
       const gl = this.gl;
       if (!gl) return;
-      if (this.tex) { gl.deleteTexture(this.tex); this.tex = null; }
+      if (this.tex) {
+        gl.deleteTexture(this.tex);
+        this.tex = null;
+      }
       this.texSize = [0, 0];
-      if (!image) { this.dirty = true; return; }
+      if (!image) {
+        this.dirty = true;
+        return;
+      }
       // Rasterise through a 2D canvas first. Two reasons:
       //  - WebGL refuses sources without intrinsic dimensions. The default
       //    Win12 wallpaper is an SVG carrying only a viewBox, and texImage2D
@@ -512,9 +557,11 @@
       let source = image;
       const iw = image.naturalWidth || image.width || 0;
       const ih = image.naturalHeight || image.height || 0;
-      const aspect = (iw > 0 && ih > 0) ? iw / ih : 1;
-      const long = Math.min(WALLPAPER_TEX_MAX,
-        Math.max(window.innerWidth, window.innerHeight) * dpr());
+      const aspect = iw > 0 && ih > 0 ? iw / ih : 1;
+      const long = Math.min(
+        WALLPAPER_TEX_MAX,
+        Math.max(window.innerWidth, window.innerHeight) * dpr(),
+      );
       let tw, th;
       if (aspect >= 1) {
         tw = Math.max(1, Math.round(long));
@@ -530,8 +577,12 @@
         c.getContext('2d').drawImage(image, 0, 0, tw, th);
         source = c;
       } catch (err) {
-        console.warn('Win12 WebGL: wallpaper rasterise failed, uploading as-is:', err && err.message);
-        tw = iw; th = ih;
+        console.warn(
+          'Win12 WebGL: wallpaper rasterise failed, uploading as-is:',
+          err && err.message,
+        );
+        tw = iw;
+        th = ih;
       }
       try {
         const tex = gl.createTexture();
@@ -539,7 +590,14 @@
         // v = 1 is the top row of the image (see the header contract)
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
         gl.getError(); // drop stale flags so the check below is meaningful
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          source,
+        );
         const err = gl.getError();
         if (err !== gl.NO_ERROR) {
           gl.deleteTexture(tex);
@@ -553,7 +611,10 @@
         this.texSize = [tw, th];
       } catch (err) {
         // gradient fallback (the shader draws the theme gradient instead)
-        console.warn('Win12 WebGL: wallpaper texture rejected, using gradient:', err && err.message);
+        console.warn(
+          'Win12 WebGL: wallpaper texture rejected, using gradient:',
+          err && err.message,
+        );
         this.tex = null;
         this.texSize = [0, 0];
       }
@@ -582,8 +643,12 @@
       gl.bindBuffer(gl.ARRAY_BUFFER, this.quad);
       gl.enableVertexAttribArray(this.aPos);
       gl.vertexAttribPointer(this.aPos, 2, gl.FLOAT, false, 0, 0);
-      const cov = coverTransform(window.innerWidth, window.innerHeight,
-        this.texSize[0], this.texSize[1]);
+      const cov = coverTransform(
+        window.innerWidth,
+        window.innerHeight,
+        this.texSize[0],
+        this.texSize[1],
+      );
       gl.uniform2f(this.u.uCoverScale, cov.scale[0], cov.scale[1]);
       gl.uniform2f(this.u.uCoverOffset, cov.offset[0], cov.offset[1]);
       if (this.tex) {
@@ -602,8 +667,13 @@
 
     destroy() {
       if (this.canvas) {
-        if (this._lost) this.canvas.removeEventListener('webglcontextlost', this._lost);
-        if (this._restored) this.canvas.removeEventListener('webglcontextrestored', this._restored);
+        if (this._lost)
+          this.canvas.removeEventListener('webglcontextlost', this._lost);
+        if (this._restored)
+          this.canvas.removeEventListener(
+            'webglcontextrestored',
+            this._restored,
+          );
         this.canvas.remove();
       }
       this._lost = this._restored = null;
@@ -651,11 +721,16 @@
     /** @returns {boolean} context acquired */
     attach() {
       const attrs = {
-        alpha: true, premultipliedAlpha: true, antialias: false,
-        depth: false, stencil: false, powerPreference: 'low-power',
+        alpha: true,
+        premultipliedAlpha: true,
+        antialias: false,
+        depth: false,
+        stencil: false,
+        powerPreference: 'low-power',
       };
-      const gl = this.canvas.getContext('webgl2', attrs) ||
-                 this.canvas.getContext('webgl', attrs);
+      const gl =
+        this.canvas.getContext('webgl2', attrs) ||
+        this.canvas.getContext('webgl', attrs);
       if (!gl) return false;
       this.gl = gl;
       this.el.insertBefore(this.canvas, this.el.firstChild);
@@ -704,12 +779,22 @@
       if (!this.gl || this._dead || !source) return;
       if (key === this.texKey && this.tex) return;
       const gl = this.gl;
-      if (this.tex) { gl.deleteTexture(this.tex); this.tex = null; }
+      if (this.tex) {
+        gl.deleteTexture(this.tex);
+        this.tex = null;
+      }
       try {
         const tex = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, tex);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          source,
+        );
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -730,17 +815,37 @@
      */
     update(desc) {
       const s = dpr();
-      const padCss = desc.shadowBlur * 2 + Math.abs(desc.shadowOffset[0]) +
-        Math.abs(desc.shadowOffset[1]) + 4;
+      const padCss =
+        desc.shadowBlur * 2 +
+        Math.abs(desc.shadowOffset[0]) +
+        Math.abs(desc.shadowOffset[1]) +
+        4;
       const cw = Math.max(1, Math.round((desc.w + 2 * padCss) * s));
       const ch = Math.max(1, Math.round((desc.h + 2 * padCss) * s));
       // cheap signature: screen x/y matter because the blur is sampled in
       // screen space, everything else is geometry/appearance
-      const sig = [cw, ch, desc.x, desc.y, desc.w, desc.h, desc.bl, desc.bt,
-        desc.radius, desc.scaleX, desc.scaleY, desc.opacity, desc.blurMix,
-        desc.shadowBlur, desc.tint.join(','), desc.shadowColor.join(','),
-        desc.shadowOffset.join(','), desc.borderColor.join(','),
-        desc.borderWidth, padCss].join('|');
+      const sig = [
+        cw,
+        ch,
+        desc.x,
+        desc.y,
+        desc.w,
+        desc.h,
+        desc.bl,
+        desc.bt,
+        desc.radius,
+        desc.scaleX,
+        desc.scaleY,
+        desc.opacity,
+        desc.blurMix,
+        desc.shadowBlur,
+        desc.tint.join(','),
+        desc.shadowColor.join(','),
+        desc.shadowOffset.join(','),
+        desc.borderColor.join(','),
+        desc.borderWidth,
+        padCss,
+      ].join('|');
       if (sig === this._sig) return;
       this._sig = sig;
       if (this.canvas.width !== cw || this.canvas.height !== ch) {
@@ -752,9 +857,10 @@
       // the two boxes. Using the panel's viewport rect here would offset the
       // canvas by the panel position a second time.
       const cs = this.canvas.style;
-      const left = -desc.bl - padCss, top = -desc.bt - padCss;
-      const widthCss = (desc.w + 2 * padCss) + 'px';
-      const heightCss = (desc.h + 2 * padCss) + 'px';
+      const left = -desc.bl - padCss,
+        top = -desc.bt - padCss;
+      const widthCss = desc.w + 2 * padCss + 'px';
+      const heightCss = desc.h + 2 * padCss + 'px';
       if (cs.left !== left + 'px') cs.left = left + 'px';
       if (cs.top !== top + 'px') cs.top = top + 'px';
       if (cs.width !== widthCss) cs.width = widthCss;
@@ -765,7 +871,8 @@
     }
 
     render(viewportW, viewportH, sourceSize) {
-      if (!this.gl || this.lost || this._dead || !this.dirty || !this.desc) return;
+      if (!this.gl || this.lost || this._dead || !this.dirty || !this.desc)
+        return;
       const gl = this.gl;
       const d = this.desc;
       gl.viewport(0, 0, this.canvas.width, this.canvas.height);
@@ -796,7 +903,12 @@
       gl.uniform1f(this.u.uOpacity, d.opacity);
 
       if (this.tex) {
-        const cov = coverTransform(viewportW, viewportH, sourceSize[0], sourceSize[1]);
+        const cov = coverTransform(
+          viewportW,
+          viewportH,
+          sourceSize[0],
+          sourceSize[1],
+        );
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.tex);
         gl.uniform1i(this.u.uWall, 0);
@@ -804,9 +916,11 @@
         gl.uniform2f(this.u.uCoverOffset, cov.offset[0], cov.offset[1]);
         // one blur radius expressed as a wallpaper-uv delta, so the blur is
         // the same size on screen whatever the viewport or source is
-        gl.uniform2f(this.u.uBlurStep,
-          cov.scale[0] * BLUR_RADIUS / viewportW,
-          cov.scale[1] * BLUR_RADIUS / viewportH);
+        gl.uniform2f(
+          this.u.uBlurStep,
+          (cov.scale[0] * BLUR_RADIUS) / viewportW,
+          (cov.scale[1] * BLUR_RADIUS) / viewportH,
+        );
       }
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       this.dirty = false;
@@ -815,8 +929,13 @@
     destroy() {
       this._dead = true;
       if (this.canvas) {
-        if (this._onLost) this.canvas.removeEventListener('webglcontextlost', this._onLost);
-        if (this._onRestored) this.canvas.removeEventListener('webglcontextrestored', this._onRestored);
+        if (this._onLost)
+          this.canvas.removeEventListener('webglcontextlost', this._onLost);
+        if (this._onRestored)
+          this.canvas.removeEventListener(
+            'webglcontextrestored',
+            this._onRestored,
+          );
         this.canvas.remove();
       }
       this._onLost = this._onRestored = null;
@@ -857,7 +976,11 @@
         m = bg && bg.match(/url\(["']?([^"')]+)["']?\)/);
       }
       if (!m) return null;
-      try { return new URL(m[1], document.baseURI).href; } catch (_) { return m[1]; }
+      try {
+        return new URL(m[1], document.baseURI).href;
+      } catch (_) {
+        return m[1];
+      }
     },
 
     /** @returns {{changed:boolean}} (image may be null -> gradient fallback) */
@@ -871,7 +994,10 @@
       this.image = null;
       this.failed = !url;
       this.failedSrc = '';
-      if (!url) { done(null, true); return; }
+      if (!url) {
+        done(null, true);
+        return;
+      }
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
@@ -900,13 +1026,15 @@
    * the texture is "up". Never rejects - any failure lands on the gradient.
    */
   const BlurSource = {
-    source: null,   // HTMLCanvasElement
+    source: null, // HTMLCanvasElement
     key: '',
     size: [0, 0],
-    blank: false,   // true when neither the image nor the gradient made it in
+    blank: false, // true when neither the image nor the gradient made it in
 
     async rebuild(image, colA, colB) {
-      let w = 64, h = 64, hasImage = false;
+      let w = 64,
+        h = 64,
+        hasImage = false;
       if (image) {
         const iw = image.naturalWidth || image.width || 0;
         const ih = image.naturalHeight || image.height || 0;
@@ -920,7 +1048,8 @@
       const c = document.createElement('canvas');
       const ctx = c.getContext('2d');
       if (hasImage) {
-        c.width = w; c.height = h;
+        c.width = w;
+        c.height = h;
         try {
           // Draw the source directly. createImageBitmap() used to be tried
           // first for speed, but for an SVG without intrinsic dimensions (the
@@ -931,18 +1060,26 @@
           ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(image, 0, 0, w, h);
           if (isBlankCanvas(ctx, w, h)) {
-            console.warn('Win12 WebGL: wallpaper rasterised to nothing, using gradient');
+            console.warn(
+              'Win12 WebGL: wallpaper rasterised to nothing, using gradient',
+            );
             hasImage = false;
           }
         } catch (err) {
-          console.warn('Win12 WebGL: wallpaper downscale failed:', err && err.message);
+          console.warn(
+            'Win12 WebGL: wallpaper downscale failed:',
+            err && err.message,
+          );
           hasImage = false;
         }
       }
       if (!hasImage) {
-        w = 64; h = 64;
-        c.width = w; c.height = h;
-        const rgba = (cc) => `rgba(${cc.map(v => Math.round(v * 255)).join(',')})`;
+        w = 64;
+        h = 64;
+        c.width = w;
+        c.height = h;
+        const rgba = (cc) =>
+          `rgba(${cc.map((v) => Math.round(v * 255)).join(',')})`;
         const g = ctx.createLinearGradient(0, 0, w * 0.6, h);
         g.addColorStop(0, rgba(colA));
         g.addColorStop(1, rgba(colB));
@@ -952,8 +1089,17 @@
       this.source = c;
       this.size = [w, h];
       this.blank = isBlankCanvas(ctx, w, h);
-      this.key = (Wallpaper.url || 'grad') + ':' + w + 'x' + h +
-        ':' + colA.join(',') + ':' + colB.join(',') + (hasImage ? ':img' : ':grad');
+      this.key =
+        (Wallpaper.url || 'grad') +
+        ':' +
+        w +
+        'x' +
+        h +
+        ':' +
+        colA.join(',') +
+        ':' +
+        colB.join(',') +
+        (hasImage ? ':img' : ':grad');
     },
   };
 
@@ -966,7 +1112,11 @@
    */
   const PANEL_RULES = [
     { sel: '#cm.show-begin', kind: 'cm', base: 600 },
-    { sel: '#start-menu.show-begin, #search-win.show-begin, #widgets.show-begin, #datebox.show-begin, #control.show-begin', kind: 'menu', base: 500 },
+    {
+      sel: '#start-menu.show-begin, #search-win.show-begin, #widgets.show-begin, #datebox.show-begin, #control.show-begin',
+      kind: 'menu',
+      base: 500,
+    },
     { sel: '#dock-box>.dock', kind: 'dock', base: 400 },
     // windows must beat desktop widgets for pool slots
     { sel: '.window.show-begin:not(.webapp)', kind: 'window', base: 200 },
@@ -982,11 +1132,59 @@
     // sat/con mirror the CSS backdrop-filter of each panel kind; without them
     // one global pair left, say, the dock visibly greyer than the DOM version.
     const M = {
-      window: { shadowBlur: 24, shadowOffset: [2, 6], borderColor: winBorder, borderWidth: 1.5, shadowColor: T.shadow, sat: 4, con: 0.8 },
-      widget: { tint: T.bg50, blurMix: 1, shadowBlur: 20, shadowOffset: [3, 3], borderColor: [0, 0, 0, 0], borderWidth: 0, shadowColor: T.shadow, sat: 1.5, con: 1 },
-      dock:   { tint: T.ctxMenu, blurMix: 0.9, shadowBlur: 18, shadowOffset: [0, 3], borderColor: menuBorder, borderWidth: 1, shadowColor: T.shadow, sat: 2, con: 1 },
-      menu:   { tint: T.bg50, blurMix: 1, shadowBlur: 22, shadowOffset: [3, 4], borderColor: menuBorder, borderWidth: 1.5, shadowColor: T.shadow, sat: 4, con: 0.8 },
-      cm:     { tint: T.ctxMenu, blurMix: 0.9, shadowBlur: 20, shadowOffset: [3, 3], borderColor: winBorder, borderWidth: 1.5, shadowColor: T.shadow, sat: 2, con: 1 },
+      window: {
+        shadowBlur: 24,
+        shadowOffset: [2, 6],
+        borderColor: winBorder,
+        borderWidth: 1.5,
+        shadowColor: T.shadow,
+        sat: 4,
+        con: 0.8,
+      },
+      widget: {
+        tint: T.bg50,
+        blurMix: 1,
+        shadowBlur: 20,
+        shadowOffset: [3, 3],
+        borderColor: [0, 0, 0, 0],
+        borderWidth: 0,
+        shadowColor: T.shadow,
+        sat: 1.5,
+        con: 1,
+      },
+      dock: {
+        tint: T.ctxMenu,
+        blurMix: 0.9,
+        shadowBlur: 18,
+        shadowOffset: [0, 3],
+        borderColor: menuBorder,
+        borderWidth: 1,
+        shadowColor: T.shadow,
+        sat: 2,
+        con: 1,
+      },
+      menu: {
+        tint: T.bg50,
+        blurMix: 1,
+        shadowBlur: 22,
+        shadowOffset: [3, 4],
+        borderColor: menuBorder,
+        borderWidth: 1.5,
+        shadowColor: T.shadow,
+        sat: 4,
+        con: 0.8,
+      },
+      cm: {
+        tint: T.ctxMenu,
+        blurMix: 0.9,
+        shadowBlur: 20,
+        shadowOffset: [3, 3],
+        borderColor: winBorder,
+        borderWidth: 1.5,
+        shadowColor: T.shadow,
+        sat: 2,
+        con: 1,
+      },
     };
 
     const out = [];
@@ -1001,8 +1199,13 @@
         const r = el.getBoundingClientRect();
         if (r.width < 2 || r.height < 2) continue;
         // generous cull so slide-in menus allocate before entering view
-        if (r.right < -1200 || r.bottom < -1200 ||
-            r.left > window.innerWidth + 1200 || r.top > window.innerHeight + 1200) continue;
+        if (
+          r.right < -1200 ||
+          r.bottom < -1200 ||
+          r.left > window.innerWidth + 1200 ||
+          r.top > window.innerHeight + 1200
+        )
+          continue;
 
         // Layout size, not the rect: the rect is post-transform while the
         // canvas lives *inside* that transform, so using it would apply the
@@ -1017,26 +1220,39 @@
 
         const b = M[rule.kind];
         const desc = {
-          el, kind: rule.kind,
-          x: r.left, y: r.top, w, h,
+          el,
+          kind: rule.kind,
+          x: r.left,
+          y: r.top,
+          w,
+          h,
           // panel-local px: the canvas is positioned inside the panel's
           // padding box, so its border has to be subtracted as well
           bl: parseFloat(cs.borderLeftWidth) || 0,
           bt: parseFloat(cs.borderTopWidth) || 0,
           scaleX: r.width / w,
           scaleY: r.height / h,
-          radius, opacity,
-          tint: b.tint, blurMix: b.blurMix, sat: b.sat, con: b.con,
-          shadowColor: b.shadowColor, shadowOffset: b.shadowOffset,
-          shadowBlur: b.shadowBlur, borderColor: b.borderColor,
+          radius,
+          opacity,
+          tint: b.tint,
+          blurMix: b.blurMix,
+          sat: b.sat,
+          con: b.con,
+          shadowColor: b.shadowColor,
+          shadowOffset: b.shadowOffset,
+          shadowBlur: b.shadowBlur,
+          borderColor: b.borderColor,
           borderWidth: b.borderWidth,
           priority: rule.base,
         };
         if (rule.kind === 'window') {
           const foc = el.classList.contains('foc');
           desc.tint = foc ? T.bg70 : T.unfoc;
-          desc.blurMix = foc ? 1 : (moreBlur ? 0.5 : 0);
-          if (!foc) { desc.shadowBlur = 10; desc.shadowOffset = [1, 2]; }
+          desc.blurMix = foc ? 1 : moreBlur ? 0.5 : 0;
+          if (!foc) {
+            desc.shadowBlur = 10;
+            desc.shadowOffset = [1, 2];
+          }
           desc.priority = rule.base + (parseInt(cs.zIndex, 10) || 0);
         }
         out.push(desc);
@@ -1059,8 +1275,8 @@
       /** @type {Map<Element, PanelLayer>} */
       this.layers = new Map();
       this.limit = POOL_SIZE;
-      this._limitUntil = 0;  // when a lowered limit may be tried again
-      this._hardFails = 0;   // shader/build failures, i.e. the device cannot
+      this._limitUntil = 0; // when a lowered limit may be tried again
+      this._hardFails = 0; // shader/build failures, i.e. the device cannot
       this.disabled = false;
     }
 
@@ -1072,7 +1288,9 @@
      */
     _degrade(hard) {
       if (hard && ++this._hardFails >= MAX_HARD_FAILS) {
-        console.warn('Win12 WebGL: panel layers disabled after repeated build failures');
+        console.warn(
+          'Win12 WebGL: panel layers disabled after repeated build failures',
+        );
         this.disabled = true;
         this.destroy();
         return;
@@ -1090,11 +1308,15 @@
      */
     sync(descs, source, key, sourceSize) {
       if (this.disabled) return;
-      if (this.limit < POOL_SIZE && this._limitUntil && performance.now() > this._limitUntil) {
+      if (
+        this.limit < POOL_SIZE &&
+        this._limitUntil &&
+        performance.now() > this._limitUntil
+      ) {
         this.limit = POOL_SIZE; // retry what the device refused earlier
         this._limitUntil = 0;
       }
-      const want = new Set(descs.map(d => d.el));
+      const want = new Set(descs.map((d) => d.el));
 
       // release layers that disappeared
       for (const [el, layer] of this.layers) {
@@ -1110,10 +1332,14 @@
         if (this.layers.has(d.el)) continue;
         if (this.layers.size >= this.limit) {
           // evict the lowest-priority ACTIVE layer if this one outranks it
-          let victim = null, victimPri = Infinity;
+          let victim = null,
+            victimPri = Infinity;
           for (const [el, layer] of this.layers) {
             const p = layer.desc ? layer.desc.priority : -1;
-            if (p < victimPri) { victimPri = p; victim = el; }
+            if (p < victimPri) {
+              victimPri = p;
+              victim = el;
+            }
           }
           if (victim && d.priority > victimPri) {
             const l = this.layers.get(victim);
@@ -1138,7 +1364,10 @@
           attached = layer.attach();
         } catch (err) {
           // shader/context failure for this one panel must not kill all
-          console.warn('Win12 WebGL: panel layer failed, using DOM for it:', err && err.message);
+          console.warn(
+            'Win12 WebGL: panel layer failed, using DOM for it:',
+            err && err.message,
+          );
           layer.destroy();
           this._degrade(true);
           continue;
@@ -1191,13 +1420,19 @@
     start() {
       // Our own canvases live inside the observed subtree: inserting them, or
       // resizing them from update(), must not schedule yet another frame.
-      const isOurs = (n) => !!(n && n.nodeType === 1 && n.classList &&
-        (n.classList.contains('win12-gl-panel') || n.classList.contains('win12-gl-bg')));
+      const isOurs = (n) =>
+        !!(
+          n &&
+          n.nodeType === 1 &&
+          n.classList &&
+          (n.classList.contains('win12-gl-panel') ||
+            n.classList.contains('win12-gl-bg'))
+        );
       this._observer = new MutationObserver((records) => {
         for (const rec of records) {
           if (rec.type === 'attributes' && isOurs(rec.target)) continue;
           if (rec.type === 'childList' && !isOurs(rec.target)) {
-            let onlyOurs = (rec.addedNodes.length + rec.removedNodes.length) > 0;
+            let onlyOurs = rec.addedNodes.length + rec.removedNodes.length > 0;
             for (const n of rec.addedNodes) if (!isOurs(n)) onlyOurs = false;
             for (const n of rec.removedNodes) if (!isOurs(n)) onlyOurs = false;
             if (onlyOurs) continue;
@@ -1207,32 +1442,44 @@
         }
       });
       this._observer.observe(document.body, {
-        attributes: true, attributeFilter: ['class', 'style'],
-        childList: true, subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'style'],
+        childList: true,
+        subtree: true,
       });
       this._observer.observe(document.documentElement, {
-        attributes: true, attributeFilter: ['class', 'style'],
+        attributes: true,
+        attributeFilter: ['class', 'style'],
       });
       if (window.ResizeObserver) {
         this._resizeObserver = new ResizeObserver(() => this.onDirty());
         this._resizeObserver.observe(document.body);
       }
-      document.addEventListener('transitionstart',
-        this._onStart = () => {
+      document.addEventListener(
+        'transitionstart',
+        (this._onStart = () => {
           this.liveUntil = performance.now() + 1200; // Win12 transitions <= 700ms
           this.onDirty();
-        }, true);
-      window.addEventListener('resize', this._onResize = () => this.onDirty());
+        }),
+        true,
+      );
+      window.addEventListener(
+        'resize',
+        (this._onResize = () => this.onDirty()),
+      );
     }
 
-    isLive() { return performance.now() < this.liveUntil; }
+    isLive() {
+      return performance.now() < this.liveUntil;
+    }
 
     stop() {
       this._observer?.disconnect();
       this._observer = null;
       this._resizeObserver?.disconnect();
       this._resizeObserver = null;
-      if (this._onStart) document.removeEventListener('transitionstart', this._onStart, true);
+      if (this._onStart)
+        document.removeEventListener('transitionstart', this._onStart, true);
       if (this._onResize) window.removeEventListener('resize', this._onResize);
       this.liveUntil = 0;
     }
@@ -1305,10 +1552,18 @@
    * @param {string} reason
    */
   function notifyFallback(reason) {
-    try { window.win12WebGL?.onFallback?.(reason); } catch (_) { /* ignore */ }
     try {
-      document.dispatchEvent(new CustomEvent('win12:webgl-fallback', { detail: { reason } }));
-    } catch (_) { /* ignore */ }
+      window.win12WebGL?.onFallback?.(reason);
+    } catch (_) {
+      /* ignore */
+    }
+    try {
+      document.dispatchEvent(
+        new CustomEvent('win12:webgl-fallback', { detail: { reason } }),
+      );
+    } catch (_) {
+      /* ignore */
+    }
   }
 
   class FullCompositor {
@@ -1331,10 +1586,13 @@
     start() {
       if (this.active) return;
       this._teardown(); // clear anything a previous failed start left behind
-      if (!this.bg.init(
-        () => this._bgLost(),
-        () => this._bgRestored(),
-      )) throw new Error('no-webgl');
+      if (
+        !this.bg.init(
+          () => this._bgLost(),
+          () => this._bgRestored(),
+        )
+      )
+        throw new Error('no-webgl');
 
       try {
         this._injectStyles();
@@ -1392,7 +1650,9 @@
       this._markDirty();
     }
 
-    render() { this._markDirty(); }
+    render() {
+      this._markDirty();
+    }
 
     _markDirty() {
       if (!this.active) return;
@@ -1442,7 +1702,6 @@
     }
 
     async _renderFrame(token) {
-
       const { colA, colB } = fallbackColors();
       this.bg.resize();
 
@@ -1456,8 +1715,11 @@
 
       // 2. shared blur source (rebuilt only on wallpaper/theme change)
       const gradKey = colA.join(',') + '|' + colB.join(',');
-      const desiredKey = (Wallpaper.image ? 'img:' : 'grad:') +
-        (Wallpaper.url || 'grad') + '#' + gradKey;
+      const desiredKey =
+        (Wallpaper.image ? 'img:' : 'grad:') +
+        (Wallpaper.url || 'grad') +
+        '#' +
+        gradKey;
       if (desiredKey !== this.sourceKey || !BlurSource.source) {
         this.sourceKey = desiredKey;
         await BlurSource.rebuild(Wallpaper.image, colA, colB);
@@ -1467,8 +1729,17 @@
 
       // 3. reconcile panel layers with the DOM, draw dirty layers
       const descs = snapshotPanels();
-      this.panels.sync(descs, BlurSource.source, BlurSource.key, BlurSource.size);
-      this.panels.renderAll(window.innerWidth, window.innerHeight, BlurSource.size);
+      this.panels.sync(
+        descs,
+        BlurSource.source,
+        BlurSource.key,
+        BlurSource.size,
+      );
+      this.panels.renderAll(
+        window.innerWidth,
+        window.innerHeight,
+        BlurSource.size,
+      );
       this.lastError = null;
 
       if (this.tracker.isLive()) this._markDirty();
@@ -1537,8 +1808,9 @@
       canvas.id = 'win12-webgl-layer';
       canvas.setAttribute('aria-hidden', 'true');
       document.body.prepend(canvas);
-      const gl = canvas.getContext('webgl2', { alpha: true }) ||
-                 canvas.getContext('webgl', { alpha: true });
+      const gl =
+        canvas.getContext('webgl2', { alpha: true }) ||
+        canvas.getContext('webgl', { alpha: true });
       if (!gl) {
         style.remove();
         canvas.remove();
@@ -1548,20 +1820,26 @@
       this.canvas = canvas;
       this.gl = gl;
 
-      const program = linkProgram(gl,
+      const program = linkProgram(
+        gl,
         'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}',
         `precision mediump float;uniform float t;
          void main(){
            vec2 p = gl_FragCoord.xy / vec2(1200.0, 800.0);
            float v = 0.5 + 0.5 * sin(t * 0.00025 + p.x * 3.0 + p.y * 2.0);
            gl_FragColor = vec4(0.05 + 0.08 * v, 0.28 + 0.12 * v, 0.52 + 0.18 * v, 0.12);
-         }`);
+         }`,
+      );
       this.program = program;
       gl.useProgram(program);
       const buffer = gl.createBuffer();
       this.buffer = buffer;
       gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+      gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
+        gl.STATIC_DRAW,
+      );
       const position = gl.getAttribLocation(program, 'p');
       gl.enableVertexAttribArray(position);
       gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
@@ -1573,7 +1851,7 @@
         canvas.height = innerHeight * s;
         gl.viewport(0, 0, canvas.width, canvas.height);
       };
-      window.addEventListener('resize', this._resize = resize);
+      window.addEventListener('resize', (this._resize = resize));
       resize();
 
       const draw = (now) => {
@@ -1587,7 +1865,8 @@
       // A permanently animating full-screen layer is pure battery drain for
       // what is only a tint: users who ask for less motion get one static
       // frame instead of a rAF loop that never ends.
-      const reduceMotion = window.matchMedia &&
+      const reduceMotion =
+        window.matchMedia &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (reduceMotion) {
         draw(0);
@@ -1615,7 +1894,8 @@
       if (this._resize) window.removeEventListener('resize', this._resize);
       this._resize = null;
       if (this.canvas) {
-        if (this._onLost) this.canvas.removeEventListener('webglcontextlost', this._onLost);
+        if (this._onLost)
+          this.canvas.removeEventListener('webglcontextlost', this._onLost);
         this.canvas.remove();
       }
       this._onLost = null;
@@ -1636,8 +1916,10 @@
   function supported() {
     try {
       const probe = document.createElement('canvas');
-      return !!(probe.getContext('webgl2', { alpha: true }) ||
-                probe.getContext('webgl', { alpha: true }));
+      return !!(
+        probe.getContext('webgl2', { alpha: true }) ||
+        probe.getContext('webgl', { alpha: true })
+      );
     } catch (_) {
       return false;
     }
@@ -1656,7 +1938,11 @@
   function stopAll() {
     full.stop();
     partial.stop();
-    document.documentElement.classList.remove('webgl-full', 'webgl-partial', 'webgl-fallback');
+    document.documentElement.classList.remove(
+      'webgl-full',
+      'webgl-partial',
+      'webgl-fallback',
+    );
     currentMode = 'off';
   }
 
@@ -1683,7 +1969,10 @@
       currentMode = mode;
       return mode;
     } catch (err) {
-      console.warn('Win12 WebGL: falling back to DOM rendering:', err && err.message);
+      console.warn(
+        'Win12 WebGL: falling back to DOM rendering:',
+        err && err.message,
+      );
       full.stop();
       partial.stop();
       document.documentElement.classList.add('webgl-fallback');
@@ -1707,17 +1996,29 @@
     apply(mode) {
       mode = MODES.includes(mode) ? mode : DEFAULT_MODE;
       const actual = start(mode);
-      try { localStorage.setItem(KEY, mode); } catch (_) { /* private mode */ }
+      try {
+        localStorage.setItem(KEY, mode);
+      } catch (_) {
+        /* private mode */
+      }
       return actual;
     },
-    setMode(mode) { return this.apply(mode); },
+    setMode(mode) {
+      return this.apply(mode);
+    },
     start,
     stop: stopAll,
     /** Extra hook for the shell; notifyFallback() also fires a DOM event. */
     onFallback: null,
-    resize() { if (full.active) full.resize(); },
-    render() { if (full.active) full.render(); },
-    destroy() { stopAll(); },
+    resize() {
+      if (full.active) full.resize();
+    },
+    render() {
+      if (full.active) full.render();
+    },
+    destroy() {
+      stopAll();
+    },
     supported,
     getState() {
       return {
@@ -1740,7 +2041,9 @@
         lastError: full.lastError,
       };
     },
-    init() { return this.apply(this.getSavedMode()); },
+    init() {
+      return this.apply(this.getSavedMode());
+    },
   };
 
   document.addEventListener('DOMContentLoaded', () => window.win12WebGL.init());
