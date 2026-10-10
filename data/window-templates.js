@@ -642,6 +642,18 @@ const windowMarkup = `	<div class="window defender" data-min-width="800" style="
 									value="#136fca">
 								<a class="a button" onclick="var c=$('div.dp.advanced>div>input.panic-inp').val();setPanicColor(c);$('div.dp.advanced>div>.color.panic-color').css('background-color',c);">应用</a>
 							</div>
+							<div style="margin-top: 18px;">
+								<p>WebGL <span style="color: var(--text2); font-size: 12px;">Beta</span></p>
+								<p style="color: var(--text2); font-size: 13px;">启用硬件加速视觉效果；不可用时自动使用普通渲染。默认关闭。</p>
+								<div class="webgl-selector" id="webgl-mode" role="radiogroup" aria-label="WebGL 渲染级别">
+									<div class="webgl-selector-options">
+										<a role="radio" data-value="off" aria-checked="false" tabindex="-1" onclick="setWebGLMode('off')">关闭</a>
+										<a role="radio" data-value="partial" aria-checked="false" tabindex="-1" onclick="setWebGLMode('partial')">部分</a>
+										<a role="radio" data-value="full" aria-checked="false" tabindex="-1" onclick="setWebGLMode('full')">全部</a>
+									</div>
+								</div>
+								<p class="webgl-hint" id="webgl-mode-hint" role="status" aria-live="polite">当前使用普通 DOM 渲染。</p>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -667,7 +679,7 @@ const windowMarkup = `	<div class="window defender" data-min-width="800" style="
 							<svg viewBox="0,0,257,344" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="width: 100px;height: 100px;background-color: var(--hover-b);width: 60px;width: 60px;height: 60px;border-radius: 50%;padding: 15px;margin-right: 15px;margin-bottom: 15px;" overflow="hidden"><defs><clipPath id="user-clip1"><rect x="382" y="195" width="257" height="344" /></clipPath><linearGradient x1="351.462" y1="233.56" x2="669.496" y2="500.422" gradientUnits="userSpaceOnUse" spreadMethod="reflect" id="user-fill3"><stop offset="0" stop-color="#A964C8" /><stop offset="0.35" stop-color="#A964C8" /><stop offset="0.87" stop-color="#2D8AD5" /><stop offset="1" stop-color="#2D8AD5" /></linearGradient><linearGradient x1="351.462" y1="233.56" x2="669.496" y2="500.422" gradientUnits="userSpaceOnUse" spreadMethod="reflect" id="user-fill4"><stop offset="0" stop-color="#A964C8" /><stop offset="0.35" stop-color="#A964C8" /><stop offset="0.87" stop-color="#2D8AD5" /><stop offset="1" stop-color="#2D8AD5" /></linearGradient></defs><g clip-path="url(#user-clip1)" transform="translate(-382 -195)"><path d="M637.755 433.872C642.215 515.221 579.577 537.983 508.011 537.983 436.444 537.983 376.676 507.833 383.513 437.11 383.109 425.234 389.59 414.133 398.634 409.891 413.82 402.768 444.753 402.936 507.484 402.997 570.214 403.058 609.164 402.279 621.521 407.947 633.878 413.614 638.011 424.609 637.755 433.872Z" fill="url(#user-fill3)" fill-rule="evenodd" /><path d="M422 285C422 235.847 461.623 196 510.5 196 559.377 196 599 235.847 599 285 599 334.153 559.377 374 510.5 374 461.623 374 422 334.153 422 285Z" fill="url(#user-fill4)" fill-rule="evenodd" /></g></svg>
 							<div style="margin-top: 8px;">
 								<p style="font-size: 19px;line-height: 1;">Administrator</p>
-								<p>starry-source@Windows12.com</p>
+								<p>starry-source@Win12.tech</p>
 							</div>
 						<!-- </div> -->
 					</div>
