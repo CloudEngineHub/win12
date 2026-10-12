@@ -811,7 +811,10 @@ toggletheme() 切换主题
             oncontextmenu="
               return showcm(event, 'smlapp', ['copilot', 'AI Chat']);
             "
-            onclick="shownotice('error_aichat')"
+            onclick="
+              $('#copilot').toggleClass('show');
+              hide_startmenu();
+            "
           >
             <img src="icon/copilot.svg" />
             <p>AI Chat</p>
